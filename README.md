@@ -1,2 +1,2 @@
 # mirto
-MIRTO: a framework for Mock Interferometry Radio Telescope Observations
+MIRTO: A framework for creating Mock Interferometry Radio Telescope Observations
