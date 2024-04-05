@@ -92,6 +92,12 @@ for typ in ['dT', 'dTgf', 'dTgfpoint', 'dTiongfpoint', 'dTnoisegainiongf', 'dTno
         true_dT_data[..., idx] = wsclean_data[cut:psf_data.shape[1]-cut,cut:psf_data.shape[2]-cut] * Jyb2K.value  # in mK
         idx += 1
 
+    if not (os.path.exists('%sfrequency.txt' %path_out)):
+        data_freq = np.zeros((len(freqs), 2))
+        data_freq[:, 0] = np.arange(i_min, i_max)
+        data_freq[:, 1] = freqs
+        np.savetxt('%sfrequency.txt' %path_out, data_freq, fmt='%d\t%.2f', header='N_ch\tfreq [Hz]')
+
     # save binary lightcone
     if not (os.path.exists('%sxH_21cm_i%d_ch%d-%d.npy' %(path_out, i, i_min, i_max))):
         np.save('%sxH_21cm_i%d_ch%d-%d.npy' %(path_out, i, i_min, i_max), mask_xH_data)
