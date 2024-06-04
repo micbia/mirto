@@ -23,7 +23,8 @@ print(' frequency range: [%.2f, %.2f] MHz' %(freq_min, freq_max))
 print(' idx_f = [%d, %d]' %(i_min, i_max))
 
 path_in = '/scratch/snx3000/mibianco/output_sdc3/dataLC_130923/'
-path_data = path_in+'lightcones/'
+#path_data = path_in+'lightcones/'
+path_data = '/store/ska/sk05/mibianco/skach_SDC3data/lightcones/'
 path_out = path_in+'data/'
 
 # read xHI lightcone simulated with 21cmFAST
@@ -48,7 +49,8 @@ print(' data dT shape: %s' %str((angular_shape, angular_shape, i_max-i_min)))
 if not (os.path.exists('%sxH_21cm_i%d_ch%d-%d.npy' %(path_out, i, i_min, i_max))):
     mask_xH_data = np.zeros((angular_shape, angular_shape, i_max-i_min), dtype=np.float32)
 
-for typ in ['dT', 'dTgf', 'dTgfpoint', 'dTiongfpoint', 'dTnoisegainiongf', 'dTnoisegainiongfpoint', 'gf', 'point']:
+#for typ in ['dT', 'dTgf', 'dTgfpoint', 'dTiongfpoint', 'dTnoisegainiongf', 'dTnoisegainiongfpoint', 'gf', 'point']:
+for typ in ['dTnoisegaingf']:
     true_dT_data = np.zeros((angular_shape, angular_shape, i_max-i_min), dtype=np.float32)
     true_dT_fits = np.zeros((i_max-i_min, 2048, 2048))
     idx = 0

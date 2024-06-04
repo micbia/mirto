@@ -1,5 +1,5 @@
 """
-Created on Wed Apr 12, 2023
+Created on Wed Jun 3, 2024
 @author: Michele Bianco
 
 Modified from Karabo test script
@@ -25,6 +25,7 @@ from astropy.wcs import WCS
 from astropy.cosmology import Planck18
 from astropy.coordinates import Angle
 
+# add mirto path
 sys.path.append("./")
 from utils.smoothing import smoothing_grid
 from atmos_effect.iono.create_screen import simulate_TEC
@@ -55,8 +56,13 @@ os.chdir(path_out)
 
 # --- Sky model ---
 path_in = path_out #'/scratch/snx3000/mibianco/output_sdc3/dataLC_130923/'
-params = toml.load('%sparams/par_i%d.toml' %(path_in, idx))
-random_seed = params['user_params']['seed']
+random_seed = 918
+
+zmax = t2c.nu_to_z(200.)
+fov_mpc = (Planck18.comoving_transverse_distance(zmax).value * FoV.value)
+data_gf = t2c.galactic_synch_fg(z=[z], ncells=Nx, boxsize=fov_mpc, rseed=random_seed//2)*1e-3 #* u.K    
+data = (hdulist[0].data[idx_f] + data_gf) * beam_sim
+
 
 with fits.open('%slightcones/%s.fits' %(path_in, root_name[:root_name.rfind('dT')+2]), mode="readonly", memmap=True) as hdulist:
     hdr = hdulist[0].header

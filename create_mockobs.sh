@@ -25,8 +25,9 @@ module load spack-config
 IDX_S=0
 IDX_F="$((${SLURM_ARRAY_TASK_ID}+600))"
 INST_EFFECTS="noisegain"
-SKY_MODEL="iongf"
+SKY_MODEL="gf"
 
+SDC_PATH=$(pwd)
 ROOT_NAME="lc_256_train_130923_i${IDX_S}"
 PATH_OUT="$SCRATCH/output_sdc3/dataLC_130923/"
 
@@ -36,7 +37,6 @@ conda activate karabo-env
 RUN_NAME="${ROOT_NAME}_dT${SKY_MODEL}_ch${IDX_F}_4h1d_256"
 
 echo "--- CREATE MS ---"
-cd data/
 if [ ! -d "${PATH_OUT}ms/${RUN_NAME}.MS" ]; then
     python karabo_ms_skalow.py $RUN_NAME $PATH_OUT
 else
@@ -45,7 +45,7 @@ fi
 echo "-----------------"
 
 if [[ "$INST_EFFECTS" == *"gain"* ]]; then
-    cd ../gain/di/
+    cd $SDC_PATH/instr_effect/
     echo "--- ADD GAIN ---"
     python add_gain.py $RUN_NAME $PATH_OUT
     DATA="MODEL_DATA"
@@ -54,7 +54,7 @@ else
     DATA="DATA"
 fi
 if [[ "$INST_EFFECTS" == *"noise"* ]]; then
-    cd ../../noise/
+    cd $SDC_PATH/instr_effect/
     echo "--- ADD NOISE ---"
     python add_noise.py $RUN_NAME $PATH_OUT
     DATA="MODEL_DATA"
