@@ -28,7 +28,7 @@ from astropy.coordinates import Angle
 # add mirto path
 sys.path.append("./")
 from utils.smoothing import smoothing_grid
-from atmos_effect.iono.create_screen import simulate_TEC
+from atmos_effect.create_screen import simulate_TEC
 
 root_name = sys.argv[1]
 path_out = sys.argv[2]
