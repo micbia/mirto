@@ -22,8 +22,8 @@ ms_input = path_out+'ms/'+root_name.replace('dT', 'dTgain')+'.MS'
 ms_output = ms_input.replace('dT', 'dTnoise')
 
 if not (os.path.exists(ms_output)):
-    #os.system('cp -r %s %s' %(ms_input, ms_output))
-    os.system('mv %s %s' %(ms_input, ms_output))
+    os.system('cp -r %s %s' %(ms_input, ms_output))
+    #os.system('mv %s %s' %(ms_input, ms_output))
 else:
     #raise FileExistsError(' %s do not exist. Stopping.' %ms_input)
     print(' folder %s exist.' %ms_output)
