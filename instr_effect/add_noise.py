@@ -30,7 +30,7 @@ else:
 
 # define noise parameters
 n_days = 250
-SEFD_path = '/store/ska/sk014/dataset_sdc3/inputs/SEFD_tables/AAVS2_sensitivity_ra0.00deg_dec_-30.00deg_0.00hours.txt'
+SEFD_path = './SEFD_tables/AAVS2_sensitivity_ra0.00deg_dec_-30.00deg_0.00hours.txt'
 rseed = random.randint(0, 1e9)
 #write_col = 'MODEL_DATA'
 write_col = 'DATA'
