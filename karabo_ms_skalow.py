@@ -27,6 +27,7 @@ from astropy.coordinates import Angle
 
 sys.path.append("./")
 from utils.smoothing import smoothing_grid
+from utils.foreground_model import galactic_synch_fg
 from atmos_effect.iono.create_screen import simulate_TEC
 
 root_name = sys.argv[1]
@@ -72,7 +73,7 @@ with fits.open('%slightcones/%s.fits' %(path_in, root_name[:root_name.rfind('dT'
     if(FRG_GF):
         zmax = t2c.nu_to_z(200.)
         fov_mpc = (Planck18.comoving_transverse_distance(zmax).value * FoV.value)
-        data_gf = t2c.galactic_synch_fg(z=[z], ncells=Nx, boxsize=fov_mpc, rseed=random_seed//2)*1e-3 #* u.K    
+        data_gf = galactic_synch_fg(z=[z], ncells=Nx, boxsize=fov_mpc, rseed=random_seed//2)*1e-3 #* u.K    
         data = (hdulist[0].data[idx_f] + data_gf) * beam_sim
     else:
         data = hdulist[0].data[idx_f] * beam_sim
@@ -133,7 +134,7 @@ if(FRG_EXGF):
 
     #sky = SkyModel()
     sky.add_point_sources(inner_sky)
-    sky.add_point_sources(outter_sky)
+    #sky.add_point_sources(outter_sky)
 
     #gauss_data = np.loadtxt(path_point+'trecscat_gauss_skymodel_4deg.txt')
     #ra_wrap, dec_wrap = Angle([gauss_data[:,0], gauss_data[:,1]], unit='degree').wrap_at(180 * u.deg).deg
@@ -149,7 +150,7 @@ if(FRG_EXGF):
 
 # -----------------
 path_telescope = '/users/mibianco/codes/sdc3/data/files/telescope.tm'
-telescope = Telescope.read_from_file(path_telescope)
+telescope = Telescope.read_OSKAR_tm_file(path_telescope)
 
 # HA between -2h to +2h, obs start at '2021-09-21 14:12:40.1'
 t_start = datetime(2021, 9, 21, 14, 12, 40, 0)

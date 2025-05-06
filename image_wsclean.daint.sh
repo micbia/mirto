@@ -32,15 +32,15 @@ spack env activate -p bipp00
 # set I/O variables
 IDX_S=0
 IDX_F=600 #"$((${SLURM_ARRAY_TASK_ID}))"
-FNAME="lc_256_train_130923_i${IDX_S}_dT_ch${IDX_F}_4h1d_256"
+FNAME="lc_256_train_130923_i${IDX_S}_dTnoise_ch${IDX_F}_4h1d_256"
 #FNAME=$( printf "residual_sdc3point_ch%04d_%02d" $IDX_F $IDX_S)
 
 MS_PREFIX="$SCRATCH/output_sdc3/dataLC_130923/ms/$FNAME"
 #MS_PREFIX="$SCRATCH/output_sdc3/output_rohit/$FNAME"
 
 PATH_MS="${MS_PREFIX}.MS"
-SCALE="16asec"
-#SCALE="14.0625asec" # for 8 deg FoV
+#SCALE="16asec"
+SCALE="14.0625asec" # for 8 deg FoV
 SIZE=2048
 WEIGHT="natural"
 #WEIGHT="uniform"
