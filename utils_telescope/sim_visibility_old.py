@@ -124,7 +124,7 @@ def process_timesteps(uvw, start_timestep, end_timestep, file_path, sky_coord, f
         
 # --------------- Define Telescope ---------------
 # Loading the telescope and station layout coords:
-telescope_layout = np.loadtxt('skalow_AAstar_layout.txt') * u.m
+telescope_layout = np.loadtxt('skalow_AA4_layout.txt') * u.m
 station_layout = np.loadtxt('station_layout.txt') * u.m
 
 N_ant = telescope_layout.shape[0]
@@ -196,16 +196,13 @@ visibility_file_path = 'test.npy'
 
 # --------------- Define Sky Model ---------------
 # Define parameters for the 2D Gaussian source
-mu = np.array([0.005, -0.004])  # Mean
-sigma = np.array([[(8e-1*u.arcsec).to('rad').value, 0], [0, (1e-1*u.arcsec).to('rad').value]])  # Covariance matrix
-
 # Get the sky model
 #dT_jy = np.zeros((N_pix, N_pix))
 #for ix in range(10):
     #dT_jy[N_pix//2+ix, N_pix//2+ix] = 1e-3
     #dT_jy[N_pix//2, N_pix//2+ix] = 1e-3
-#dT_jy = gaussian_2d(prefactor=1e-3, x=l_coord, y=m_coord, mean=mu, cov=sigma)
-dT_jy = galactic_synch_fg_custom(z=[z], ncells=N_pix, boxsize=L_box.value, rseed=918)
+#dT_jy = gaussian_2d(prefactor=1e-3, x=l_coord, y=m_coord, mean=np.array([0.005, -0.004]), cov=np.array([[(8e-1*u.arcsec).to('rad').value, 0], [0, (1e-1*u.arcsec).to('rad').value]]))
+dT_jy = galactic_synch_fg_custom(z=[z], ncells=N_pix, boxsize=L_box.value)
 #dT_jy = np.random.normal(loc=1e-3, scale=1e-4, size=(N_pix, N_pix))
 
 #Running the function
@@ -228,8 +225,8 @@ V_matrix = V_matrix + np.conj(V_matrix.T)
 # plot visibility matrix
 fig, axs = plt.subplots(figsize=(12, 5), ncols=2, nrows=1, constrained_layout=True)
 axs[0].set_title('Sky Model')
-im = axs[0].pcolormesh((l_coord*u.rad).to('arcmin').value, (m_coord*u.rad).to('arcmin').value, dT_jy, vmin=0., vmax=0.002, cmap='viridis')
-axs[0].set_xlabel(r'l [arcmin]'), axs[0].set_ylabel(r'm [arcmin]')
+im = axs[0].pcolormesh((l_coord*u.rad).to('deg').value, (m_coord*u.rad).to('deg').value, dT_jy, vmin=0., vmax=0.002, cmap='viridis')
+axs[0].set_xlabel(r'RA [$^\circ$]'), axs[0].set_ylabel(r'Dec [$^\circ$]')
 plt.colorbar(im, ax=axs[0], label='I [Jy]', pad=0.01)
 
 axs[1].set_title('Visibility Matrix')
