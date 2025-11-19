@@ -44,10 +44,10 @@ def compute_visibility(uvw, lmn, I_sky, beam_pattern=None, flat_sky=True, max_no
     ----------
     uvw : (N_baselines, 3) array
         Baselines in metres.
-    lmn : (N_pixel,2) arrays
+    lmn : (N_pixel, 2) arrays
         Direction cosines or small-angle radians (if small FOV).
     I_sky, beam_pattern : 2D arrays
-        Sky brightness and primary beam pattern on (m,l) grid.
+        Sky brightness and primary beam pattern on (l,m) grid.
     max_norm : float or None
         Optional cutoff in |uvw| (wavelengths).
     chunk_size : int

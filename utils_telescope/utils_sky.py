@@ -10,7 +10,7 @@ def gaussian_2d(prefactor, x, y, mean, cov):
     exponent = -0.5 * (x_diff**2 * inv_cov[0, 0] + y_diff**2 * inv_cov[1, 1] + 2 * x_diff * y_diff * inv_cov[0, 1])
     return prefactor * np.exp(exponent)
 
-def galactic_synch_fg_custom(z, ncells, boxsize, rseed=False):
+def galactic_synch_fg_custom(z, ncells, boxsize, A150=513., beta_=2.34, rseed=False):
     if(isinstance(z, float)):
         z = np.array([z])
     else:
@@ -20,7 +20,7 @@ def galactic_synch_fg_custom(z, ncells, boxsize, rseed=False):
     if(rseed): np.random.seed(rseed)
     X  = np.random.normal(size=(ncells, ncells))
     Y  = np.random.normal(size=(ncells, ncells))
-    nu_s,A150,beta_,a_syn,Da_syn = 150,513,2.34,2.8,0.1
+    nu_s,a_syn,Da_syn = 150,2.8,0.1
 
     for i in range(0, z.size):
         nu = t2c.cosmo.z_to_nu(z[i])
