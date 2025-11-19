@@ -4,7 +4,7 @@ from datetime import timedelta
 import colorednoise as cn
 import matplotlib.pyplot as plt
 
-def DIAntennaErrorSDC3A(N_ant, freq_chan, N_time, mean_A=1, std_A=2e-4, mean_phi=0, std_phi=0.02*np.pi/180):
+def DIAntennaErrorSDC3A(numAntenna, frequencyChannels, timeSteps, amplitudeMean=1, amplitudeSigma=2e-4,phaseMean=0, phaseSigma=0.02*np.pi/180):
     """
     As per the document, 
     "We have constructed a gain model for the telescope array which represents the amplitude and phase response of each of the 512 stations for every 10 second time interval and every frequency channel of the observation.We have fixed the mean amplitude response at unity and the mean phase response at zero, so that there are no systematic calibration errors. However, each time and frequency interval is assigned a value taken from an error distribution. The time and frequency fluctuations are assumed to be independent of each other and the gain error at each specific (time, frequency) is given by the complex product of the two, one-dimensional distributions. The one-dimensional gain distributions in each of time and frequency are first assigned random values from a Gaussian distribution with a specified standard deviation in each of amplitude and phase. We then make use of the “colorednoise” python code [RD10] to take these “white-noise” distributions that have equal fluctuation power on all sampled scales and produce “red-noise” distributions with a -2 power-law index, whereby the greatest  fluctuation power is present on the longest time intervals and over the largest frequency increments.Both the standard deviation and mean values are preserved in this process of coloring the noise. The resulting fluctuations are reminiscent of gain error patterns that are encountered in actual observations. In assigning a numerical value to the standard deviation of the DI amplitude and phase errors we have considered both what might be realistically achieved for the calibration quality of a single observation as well as a plausible degree of
@@ -31,43 +31,43 @@ def DIAntennaErrorSDC3A(N_ant, freq_chan, N_time, mean_A=1, std_A=2e-4, mean_phi
     Futher the individual samples of A_i and B_i are correlated in frequency and time (red noise NOT white noise)
     
     """
-    if (N_time > 1):
+    noiseExponent = 2 # 2 represents red noise
 
-        # time array for amplitude with brown noise
-        time_A_bn = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, N_time))
+    if (timeSteps > 1):
+
+        timeBrownNoiseArray = cn.powerlaw_psd_gaussian(noiseExponent, (numAntenna, timeSteps)) # for time amplitude
         
-        # time array for phase with brown noise
-        time_phi_bn = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, N_time))
+        timePhaseBrownNoiseArray = cn.powerlaw_psd_gaussian(noiseExponent, (numAntenna, timeSteps))
 
-        # rescale brown noise to the desired mean and std
-        time_A = (time_A_bn/ np.std(time_A_bn) * std_A) + (mean_A - (std_A /np.std(time_A_bn) * np.mean(time_A_bn) ))
-        time_phi = (time_phi_bn/ np.std(time_phi_bn) * std_phi) + (mean_phi - (std_phi/np.std(time_phi_bn) * np.mean(time_phi_bn) ))
+        timeAmplitudeArray = (timeBrownNoiseArray/ np.std(timeBrownNoiseArray) * amplitudeSigma) + (amplitudeMean - (amplitudeSigma /np.std(timeBrownNoiseArray) * np.mean(timeBrownNoiseArray) ))
+        timePhaseArray = (timePhaseBrownNoiseArray/ np.std(timePhaseBrownNoiseArray) * phaseSigma) + (phaseMean - (phaseSigma /np.std(timePhaseBrownNoiseArray) * np.mean(timePhaseBrownNoiseArray) ))
     else: 
-        timeAmplitudeArray = np.random.normal(loc=mean_A, scale=std_A, size=(N_ant,1))
-        timePhaseArray  = np.random.normal(loc=mean_phi, scale=std_phi, size=(N_ant,1))
+        timeAmplitudeArray = np.random.normal(loc=amplitudeMean, scale=amplitudeSigma, size=(numAntenna,1))
+        timePhaseArray  = np.random.normal(loc=phaseMean, scale=phaseSigma, size=(numAntenna,1))
 
-    # gain in function of time with shape: (N_ant, N_time)
-    gain_time = time_A * np.exp(1j * 2 * np.pi * time_phi)
+    timeArray = timeAmplitudeArray * np.exp(1j * 2 * np.pi * timePhaseArray)
 
-    time3DArray = np.tile(gain_time, (freq_chan.shape[0], 1, 1)) # frequency, numAntenna, TimeSteps we want times, baselines, channels
+    time3DArray = np.tile(timeArray, (frequencyChannels.shape[0], 1, 1)) # frequency, numAntenna, TimeSteps we want times, baselines, channels
     time3DArray = time3DArray.T # time, numAntennas, channels - but channels should be same
 
-    if (freq_chan.shape[0] > 1):
-        frequencyBrownNoiseArray = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, freq_chan.shape[0])) # for frequency amplitude
-        frequencyPhaseBrownNoiseArray = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, freq_chan.shape[0]))
+    if (frequencyChannels.shape[0]>1):
 
-        frequencyAmplitudeArray = (frequencyBrownNoiseArray/np.std(frequencyBrownNoiseArray) * std_A) + (mean_A - (std_A /np.std(frequencyBrownNoiseArray) * np.mean(frequencyBrownNoiseArray) ))
-        frequencyPhaseArray = (frequencyPhaseBrownNoiseArray/np.std(frequencyPhaseBrownNoiseArray) * std_phi) + (mean_phi - (std_phi /np.std(frequencyPhaseBrownNoiseArray) * np.mean(frequencyPhaseBrownNoiseArray) ))
+        frequencyBrownNoiseArray = cn.powerlaw_psd_gaussian(noiseExponent, (numAntenna,frequencyChannels.shape[0])) # for frequency amplitude
+        frequencyPhaseBrownNoiseArray = cn.powerlaw_psd_gaussian(noiseExponent, (numAntenna,frequencyChannels.shape[0]))
+
+        frequencyAmplitudeArray = (frequencyBrownNoiseArray/np.std(frequencyBrownNoiseArray) * amplitudeSigma) + (amplitudeMean - (amplitudeSigma /np.std(frequencyBrownNoiseArray) * np.mean(frequencyBrownNoiseArray) ))
+        frequencyPhaseArray = (frequencyPhaseBrownNoiseArray/np.std(frequencyPhaseBrownNoiseArray) * phaseSigma) + (phaseMean - (phaseSigma /np.std(frequencyPhaseBrownNoiseArray) * np.mean(frequencyPhaseBrownNoiseArray) ))
 
     else:
-        frequencyAmplitudeArray = np.random.normal(loc=mean_A, scale=std_A, size=(N_ant, 1))
-        frequencyPhaseArray = np.random.normal(loc=mean_phi, scale=std_phi, size=(N_ant, 1))
-
+        frequencyAmplitudeArray = np.random.normal(loc = amplitudeMean, scale = amplitudeSigma, size = (numAntenna, 1))
+        frequencyPhaseArray = np.random.normal(loc = phaseMean, scale = phaseSigma, size = (numAntenna, 1))
+    
+    
     frequencyArray = frequencyAmplitudeArray * np.exp(1j * 2 * np.pi * frequencyPhaseArray)
 
-    frequency3DArray = np.tile(frequencyArray, (N_time, 1, 1)) # Timesteps, numAntenna, numFrequencies but times should be same
+    frequency3DArray = np.tile(frequencyArray, (timeSteps, 1, 1)) # Timesteps, numAntenna, numFrequencies but times should be same
 
-    DIError = time3DArray* frequency3DArray  
+    DIError = time3DArray* frequency3DArray   
     '''
     #Plotting test:
     #fig, ax = plt.subplots(2,2, figsize = (20,20)) # make 2, 3 when histogram to be plotted - possibly need to multiply values by 1000 or 100 before sorting
