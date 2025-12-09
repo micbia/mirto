@@ -1,5 +1,16 @@
 import numpy as np
-import tools21cm as t2c
+#import tools21cm as t2c
+
+import astropy.constants as cst
+import astropy.units as u
+
+from astropy.cosmology import Planck18 as cosmo
+
+
+def z_to_nu(z):
+    # get the 21 cm frequency (in MHz) that corresponds to redshift z
+    nu0 = (cst.c/(21. *u.cm)).to('MHz').value
+    return nu0/(1.+z)
 
 # define a 2D gaussian function
 def gaussian_2d(prefactor, x, y, mean, cov):
@@ -20,16 +31,16 @@ def galactic_synch_fg_custom(z, ncells, boxsize, A150=513., beta_=2.34, rseed=Fa
     if(rseed): np.random.seed(rseed)
     X  = np.random.normal(size=(ncells, ncells))
     Y  = np.random.normal(size=(ncells, ncells))
-    nu_s,a_syn,Da_syn = 150,2.8,0.1
+    #nu_s, A150, beta_, a_syn, Da_syn = 150, 513, 2.34, 2.8, 0.1
+    #nu_s, a_syn, Da_syn = 150, 2.8, 0.1
 
     for i in range(0, z.size):
-        nu = t2c.cosmo.z_to_nu(z[i])
-        U_cb  = (np.mgrid[-ncells/2:ncells/2,-ncells/2:ncells/2]+0.5)*t2c.cosmo.z_to_cdist(z[i])/boxsize
+        nu = z_to_nu(z[i])
+        U_cb  = (np.mgrid[-ncells/2:ncells/2,-ncells/2:ncells/2]+0.5)*cosmo.comoving_distance(z[i])/boxsize
         l_cb  = 2*np.pi*np.sqrt(U_cb[0,:,:]**2+U_cb[1,:,:]**2)
         #C_syn = A150*(1000/l_cb)**beta_*(nu/nu_s)**(-2*a_syn-2*Da_syn*np.log(nu/nu_s))
         C_syn = A150*(1000/l_cb)**beta_
-        #C_syn = A150
-        solid_angle = boxsize**2/t2c.cosmo.z_to_cdist(z[i])**2
+        solid_angle = boxsize**2/cosmo.comoving_distance(z[i])**2
         AA = np.sqrt(solid_angle*C_syn/2)
         T_four = AA*(X+Y*1j) * np.sqrt(2)
         T_real = np.abs(np.fft.ifft2(T_four))   #in Jansky

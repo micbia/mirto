@@ -43,8 +43,8 @@ def DIAntennaErrorSDC3A(N_ant, freq_chan, N_time, mean_A=1, std_A=2e-4, mean_phi
         time_A = (time_A_bn/ np.std(time_A_bn) * std_A) + (mean_A - (std_A /np.std(time_A_bn) * np.mean(time_A_bn) ))
         time_phi = (time_phi_bn/ np.std(time_phi_bn) * std_phi) + (mean_phi - (std_phi/np.std(time_phi_bn) * np.mean(time_phi_bn) ))
     else: 
-        timeAmplitudeArray = np.random.normal(loc=mean_A, scale=std_A, size=(N_ant,1))
-        timePhaseArray  = np.random.normal(loc=mean_phi, scale=std_phi, size=(N_ant,1))
+        time_A = np.random.normal(loc=mean_A, scale=std_A, size=(N_ant,1))
+        time_phi  = np.random.normal(loc=mean_phi, scale=std_phi, size=(N_ant,1))
 
     # gain in function of time with shape: (N_ant, N_time)
     gain_time = time_A * np.exp(1j * 2 * np.pi * time_phi)
@@ -53,19 +53,20 @@ def DIAntennaErrorSDC3A(N_ant, freq_chan, N_time, mean_A=1, std_A=2e-4, mean_phi
     time3DArray = time3DArray.T # time, numAntennas, channels - but channels should be same
 
     if (freq_chan.shape[0] > 1):
-        frequencyBrownNoiseArray = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, freq_chan.shape[0])) # for frequency amplitude
-        frequencyPhaseBrownNoiseArray = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, freq_chan.shape[0]))
+        freq_A_bn = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, freq_chan.shape[0])) # for frequency amplitude
+        freq_phi_bn = cn.powerlaw_psd_gaussian(exponent=2, size=(N_ant, freq_chan.shape[0]))
 
-        frequencyAmplitudeArray = (frequencyBrownNoiseArray/np.std(frequencyBrownNoiseArray) * std_A) + (mean_A - (std_A /np.std(frequencyBrownNoiseArray) * np.mean(frequencyBrownNoiseArray) ))
-        frequencyPhaseArray = (frequencyPhaseBrownNoiseArray/np.std(frequencyPhaseBrownNoiseArray) * std_phi) + (mean_phi - (std_phi /np.std(frequencyPhaseBrownNoiseArray) * np.mean(frequencyPhaseBrownNoiseArray) ))
+        freq_A = (freq_A_bn/np.std(freq_A_bn) * std_A) + (mean_A - (std_A /np.std(freq_A_bn) * np.mean(freq_A_bn) ))
+        freq_phi = (freq_phi_bn/np.std(freq_phi_bn) * std_phi) + (mean_phi - (std_phi /np.std(freq_phi_bn) * np.mean(freq_phi_bn) ))
 
     else:
-        frequencyAmplitudeArray = np.random.normal(loc=mean_A, scale=std_A, size=(N_ant, 1))
-        frequencyPhaseArray = np.random.normal(loc=mean_phi, scale=std_phi, size=(N_ant, 1))
+        freq_A = np.random.normal(loc=mean_A, scale=std_A, size=(N_ant, 1))
+        freq_phi = np.random.normal(loc=mean_phi, scale=std_phi, size=(N_ant, 1))
 
-    frequencyArray = frequencyAmplitudeArray * np.exp(1j * 2 * np.pi * frequencyPhaseArray)
+    # gain in function of frequency with shape: (N_ant, N_time)
+    gain_freq = freq_A * np.exp(1j * 2 * np.pi * freq_phi)
 
-    frequency3DArray = np.tile(frequencyArray, (N_time, 1, 1)) # Timesteps, numAntenna, numFrequencies but times should be same
+    frequency3DArray = np.tile(gain_freq, (N_time, 1, 1)) # Timesteps, numAntenna, numFrequencies but times should be same
 
     DIError = time3DArray* frequency3DArray  
     '''
@@ -91,15 +92,15 @@ def DIAntennaErrorSDC3A(N_ant, freq_chan, N_time, mean_A=1, std_A=2e-4, mean_phi
         #ax[0,2].hist(timeArray * 100, bins = 10)
         #ax[0,2].set_title("Time Histogram")
         """
-        ax[1,0].plot(np.arange(frequencyArray.shape[-1]), frequencyArray[i, :])
+        ax[1,0].plot(np.arange(gain_freq.shape[-1]), gain_freq[i, :])
         ax[1,0].set_title("Frequency Series")
 
-        f = np.fft.rfftfreq(frequencyArray.shape[-1])
-        ax[1,1].loglog(f, abs(np.fft.rfft(frequencyArray[i, :])))# FFT of original time series
+        f = np.fft.rfftfreq(gain_freq.shape[-1])
+        ax[1,1].loglog(f, abs(np.fft.rfft(gain_freq[i, :])))# FFT of original time series
         ax[1,1].set_title(f"Frequency Series FFT")
 
         """
-        #ax[1,2].hist(frequencyArray * 100, bins = 10)
+        #ax[1,2].hist(gain_freq * 100, bins = 10)
         #ax[1,2].set_title("Frequency Histogram")
     #plt.savefig('rednoise.png', bbox_inches='tight')
     plt.show()

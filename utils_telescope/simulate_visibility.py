@@ -63,16 +63,20 @@ def compute_visibility(uvw, lmn, I_sky, beam_pattern=None, flat_sky=True, max_no
         Baselines employed in the calculation (after max_norm).
     """
     # Convert to CuPy arrays
-    uvw = cp.asarray(uvw)
-    lmn = cp.asarray(lmn)
-    I_sky = cp.asarray(I_sky)
+    if type(uvw) is not type(cp.array([])):
+        uvw = cp.asarray(uvw)
+        lmn = cp.asarray(lmn)
+        I_sky = cp.asarray(I_sky)
+    else:
+        pass
 
     Nx, Ny = I_sky.shape
     assert Nx == Ny
 
     # pixel-wise product between beam and sky model
     if beam_pattern is not None:
-        beam_pattern = cp.asarray(beam_pattern)
+        if type(beam_pattern) is not type(cp.array([])):
+            beam_pattern = cp.asarray(beam_pattern)
         img = (I_sky * beam_pattern).ravel()
     else:
         img = I_sky.ravel()
@@ -136,7 +140,7 @@ def compute_visibility(uvw, lmn, I_sky, beam_pattern=None, flat_sky=True, max_no
 
 
 """
-def process_timesteps(uvw, start_timestep, end_timestep, file_path, sky_coord, freq, I_sky, beam_pattern, max_norm, chunk_size):
+def visibility_timesteps(uvw, start_timestep, end_timestep, file_path, sky_coord, freq, I_sky, beam_pattern, max_norm, chunk_size):
     # empty visibilities
     visibilities = []
     processed_timesteps = set()
