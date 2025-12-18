@@ -10,15 +10,24 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from tqdm import tqdm
 
+from scipy import stats
+
+
 class MIRTO():
-    def __init__(self, N_ant, wavelength, layout, lmn, RA, Dec, I_sky, flat_sky=False):
-        self.N_ant = N_ant
+    def __init__(self, wavelength, layout, beam_pattern, lmn, RA, Dec, I_sky, flat_sky=False):
         self.wavelength = wavelength
         self.layout = layout
-        self.lmn = cp.asarray(lmn)
         self.RA, self.Dec = RA, Dec
+        
+        if beam_pattern is not None:
+            self.beam_pattern = cp.asarray(beam_pattern)
+        else:
+            self.beam_pattern = None
 
         self.I_sky = cp.asarray(I_sky)
+        self.N_pix = I_sky.shape[0]
+        self.dthet = np.diff(np.unique(lmn[:,0]))[0]
+        self.lmn = cp.asarray(lmn)
         
         self.flat_sky = flat_sky
         """
@@ -29,15 +38,24 @@ class MIRTO():
         phase_error = cp.pi * uv_max * (l_max**2 + m_max**2)
         flat_sky = phase_error < 0.1  # threshold ~0.1 rad phase error
 
-        if flat_sky:
+        if flat_sky:cp.asarray(
             print(" Using FLAT-SKY approximation (phase error %.3e rad)" %phase_error)
         else:
             print(" Using FULL-SKY model (phase error %.3e rad)" %phase_error)    
         """
 
         # get number of baselines (pair  of antennas)
-        self.N_B = int(self.N_ant*(self.N_ant-1)/2)
+        self.N_ant = self.layout.shape[0]
+        self.N_B = self.num_baselines(N_ant=self.N_ant)
+        
+        #print(' number of stations:', self.N_ant)
+        #print(' number of baselines:', self.N_B)
 
+
+    def num_baselines(self, N_ant):
+        # get number of baselines (pair  of antennas)
+        N_B = int(N_ant*(N_ant-1)/2)
+        return N_B
 
     def earth_rotation_effect(self, HA, delta):
         """ Earth Rotation matrix calculation"""
@@ -48,7 +66,15 @@ class MIRTO():
                         [np.cos(delta)*np.cos(HA), -np.cos(delta)*np.sin(HA), np.sin(delta)]])
 
 
-    def get_baselines(self):
+    def get_baselines(self, max_norm=None):
+        if(max_norm):
+            # redefine the layout if a max distance for the layout is used
+            mask_layout = np.linalg.norm(self.layout, axis=1) <= max_norm
+
+            self.N_ant = np.sum(mask_layout)
+            self.N_B = self.num_baselines(N_ant=self.N_ant)
+            self.layout = self.layout[mask_layout]
+
         pair_comb = list(itertools.combinations(range(self.N_ant), 2))
 
         assert np.shape(pair_comb)[0] == self.N_B
@@ -102,9 +128,6 @@ class MIRTO():
         else:
             pass
 
-        Nx, Ny = self.I_sky.shape
-        assert Nx == Ny
-
         # pixel-wise product between beam and sky model
         if beam_pattern is not None:
             if type(beam_pattern) is not type(cp.array([])):
@@ -123,8 +146,8 @@ class MIRTO():
             l_coord, m_coord, n_coord = self.lmn[:,0].ravel(), self.lmn[:,1].ravel(), n_grid.ravel()
         
         # TODO: maybe to keep the full cp.diff instead than using just the first value?
-        dl = (l_coord.max()-l_coord.min())/Nx
-        dm = (m_coord.max()-m_coord.min())/Nx
+        dl = (l_coord.max()-l_coord.min())/self.N_pix
+        dm = (m_coord.max()-m_coord.min())/self.N_pix
 
         # Area element for integration
         pixel_area = dl * dm
@@ -157,19 +180,60 @@ class MIRTO():
         return cp.asnumpy(vis), cp.asnumpy(uvw_norms), cp.asnumpy(uvw)
 
 
-    def visibility_timesteps(self, h_angle, uvw, beam_pattern, max_norm=None, chunk_size=1024):
-        
-        for i_t, h in enumerate(h_angle):
-            # comput visibility
-            vis, uvw_len, uvw = self.compute_visibility(self, uvw, beam_pattern=None, max_norm=None, chunk_size=chunk_size)
+    def visibility_timesteps(self, h_angle, uvw, chunk_size=1024, grid_vis=False):
+        # Convert to CuPy arrays
+        if type(uvw) is not type(cp.array([])):
+            uvw = cp.asarray(uvw)
+        else:
+            pass
 
+        # Convert to CuPy arrays
+        if type(self.layout) is not type(cp.array([])):
+            self.layout = cp.asarray(self.layout.copy())
+        else:
+            pass   
+
+        if(grid_vis):
+            u_bin = np.fft.fftshift(np.fft.fftfreq(self.N_pix+1, self.dthet))
+            uv_plane = np.zeros((u_bin.size-1, u_bin.size-1),dtype=np.complex128)
+            uv_sampl = np.zeros((u_bin.size-1, u_bin.size-1),dtype=np.float64)
+
+        for i_t in tqdm(range(h_angle.size), desc='Calculate visibility: '):
             # calculate rotation for next time step
-            rotation_matrix = self.earth_rotation_effect(HA=h, delta=self.Dec)
-            
-            # rotate uvw coordinates for next time step
-            uwv = cp.dot(rotation_matrix, uvw.T).T
+            rotation_matrix = self.earth_rotation_effect(HA=h_angle[i_t], delta=self.Dec)
 
-        return vis
+            # rotate uvw coordinates for next time step
+            uwv_coord = cp.dot(rotation_matrix, self.layout.T).T
+            
+            # comput visibility
+            vis, uvw_len, uvw = self.compute_visibility(uvw=uwv_coord, beam_pattern=self.beam_pattern, max_norm=None, chunk_size=chunk_size)
+
+            if(grid_vis):
+                # binn the visibility points (real and complex space)
+                uv_plane_real = stats.binned_statistic_2d(x=uvw[:,0], y=uvw[:,1], values=vis.real, statistic='sum', bins=[u_bin, u_bin]).statistic
+                uv_plane_compl = stats.binned_statistic_2d(x=uvw[:,0], y=uvw[:,1], values=vis.imag, statistic='sum', bins=[u_bin, u_bin]).statistic
+
+                # combine back the uv-data
+                uv_plane += uv_plane_real + 1j*uv_plane_compl
+
+                # sampling
+                uv_sampl += stats.binned_statistic_2d(x=cp.asnumpy(uvw[:,0]), y=cp.asnumpy(uvw[:,1]), values=None, statistic='count', bins=[u_bin, u_bin]).statistic
+
+        
+        if(grid_vis):
+            uv_plane /= np.where(uv_sampl > 0, uv_sampl, 1)
+
+        """
+            u_bin, grid_vis = self.grid_visibility()
+            return u_bin, grid_vis
+        else:
+            # TODO: I need to stack all the visibility. This will create a huge file (depending on the obs lenth)
+            return uvw, vis
+        """
+        return uv_plane, uv_sampl, u_bin
+    
+    def grid_visibility(self):
+        return 0
 
 """
 def visibility_timesteps(uvw, start_timestep, end_timestep, file_path, sky_coord, freq, I_sky, beam_pattern, max_norm, chunk_size):
