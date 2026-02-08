@@ -195,8 +195,8 @@ class MIRTO():
 
         if(grid_vis):
             u_bin = np.fft.fftshift(np.fft.fftfreq(self.N_pix+1, self.dthet))
-            uv_plane = np.zeros((u_bin.size-1, u_bin.size-1),dtype=np.complex128)
-            uv_sampl = np.zeros((u_bin.size-1, u_bin.size-1),dtype=np.float64)
+            uv_plane = np.zeros((u_bin.size-1, u_bin.size-1), dtype=np.complex128)
+            uv_sampl = np.zeros((u_bin.size-1, u_bin.size-1), dtype=np.float64)
 
         for i_t in tqdm(range(h_angle.size), desc='Calculate visibility: '):
             # calculate rotation for next time step
