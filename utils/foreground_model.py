@@ -26,8 +26,7 @@ def galactic_synch_fg(z, ncells, boxsize, rseed=False):
     """
     if(isinstance(z, float)):
         z = np.array([z])
-    else:
-        z = np.array(z, copy=False)
+
     gf_data = np.zeros((ncells, ncells, z.size))
 
     if(rseed): np.random.seed(rseed)
