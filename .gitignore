@@ -1,5 +1,10 @@
-__pycache__/
+# Ignore jupyter notebook checkpoints and python cache
+**/__pycache__/
 .ipynb_checkpoints/
+
+# ignore large files
 *.fits
-logs/
 utils_telescope/*.npy
+
+# ignore logs file
+logs/
